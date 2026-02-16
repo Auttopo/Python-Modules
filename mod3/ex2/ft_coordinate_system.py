@@ -39,6 +39,7 @@ def parser(data: str) -> tuple[int, int, int]:
 
 
 if __name__ == "__main__":
+    print("=== Game Coordinate System ===")
     try:
         pos1 = parser("0,5,3")
         pos2 = parser("10,20,3")

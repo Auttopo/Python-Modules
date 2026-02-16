@@ -5,7 +5,7 @@ if __name__ == "__main__":
 
     scores = []
     i = 0
-
+    print("=== Player Score Analytics ===")
     for arg in sys.argv[1:]:
         if arg.isdigit():
             scores.append(int(arg))

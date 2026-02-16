@@ -1,5 +1,8 @@
 
-def unique(localset1: set, localset2: set, localset3: set) -> None:
+def unique(
+        localset1: set[str],
+        localset2: set[str],
+        localset3: set[str]) -> None:
     "look for unique set element in the first argument"
     d = localset1 - localset2.union(localset3)
     if d:

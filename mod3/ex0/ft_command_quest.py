@@ -1,6 +1,8 @@
 import sys
 
 if __name__ == "__main__":
+    print("=== Command Quest ===")
+    print("Program name:", sys.argv[0])
     try:
         sys.argv[1]
     except Exception:

@@ -11,9 +11,6 @@ def case_0(
     players[who][1] += 0.1  # xp
     players[who][2] += 5  # golds
 
-    players[5][1] += 0.1  # xp
-    players[5][2] += 5  # golds
-
 
 def case_1(
     who: int,
@@ -23,8 +20,6 @@ def case_1(
     """event: found a chest"""
 
     players[who][2] += 10  # golds
-
-    players[5][2] += 10  # golds
 
 
 def case_2(
@@ -37,9 +32,6 @@ def case_2(
     players[who][1] += 0.4  # xp
     players[who][2] += 10  # golds
 
-    players[5][1] += 0.4  # xp
-    players[5][2] += 10  # golds
-
 
 def case_3(
     who: int,
@@ -51,9 +43,6 @@ def case_3(
     players[who][2] += 60  # golds
     players[who2][2] -= 65  # golds
 
-    players[5][2] += 60  # golds
-    players[5][4] += 65  # goldslost
-
 
 def case_4(
     who: int,
@@ -63,8 +52,6 @@ def case_4(
     """event: found treasure"""
 
     players[who][2] += 50  # golds
-
-    players[5][2] += 50  # golds
 
 
 def case_5(
@@ -80,10 +67,6 @@ def case_5(
 
     players[who2][1] -= 0.1  # xp
     players[who2][2] -= 5  # golds
-
-    players[5][1] += 0.2  # xp
-    players[5][3] += 0.1  # xplost
-    players[5][4] += 5  # goldslost
 
 
 def case_6(
@@ -102,9 +85,6 @@ def case_6(
     players[who2][1] += 1  # xp
     players[who2][2] += 55  # golds
 
-    players[5][1] += 1 * 2  # xp
-    players[5][2] += 55 * 2  # golds
-
 
 def case_7(
     who: int,
@@ -117,9 +97,6 @@ def case_7(
 
     players[who][1] += 0.1  # xp
     players[who][2] += 100  # golds
-
-    players[5][1] += 0.1  # xp
-    players[5][2] += 100  # golds
 
 
 def random_number(seed: int, range: int = 10) -> Generator[int, None, None]:
@@ -207,6 +184,19 @@ def set_last_achievements(
     best[3].add("speed_demon")
 
 
+def is_unique(
+    players: dict[int, list[str, int, int]],
+    data: str
+) -> bool:
+    i = 0
+    for player in players.items():
+        if data in player[1][3]:
+            i += 1
+    if i != 1:
+        return False
+    return True
+
+
 def summary(
     players: dict[int, list[str, int, int]],
     event_switch: dict[int, list[str, int]],
@@ -216,9 +206,6 @@ def summary(
 
     print("=== Game Analytics Dashboard ===")
     print("\nTotal Generations:", gen_n)
-    print("\nEvents Occured:")
-    for event in event_switch:
-        print(event_switch[event][1], event_switch[event][0])
 
     print("\nEvery Players Lasts Stats:")
     player = 0
@@ -233,19 +220,23 @@ def summary(
             players[player][3],
         )
         player += 1
-    print("")
-    print(
-        players[player][0].capitalize(),
-        ", level gained:",
-        int(players[player][1]),
-        ", gold earn:",
-        players[player][2],
-        ", xp losed in levels:",
-        int(players[player][3]),
-        ", gold losed:",
-        players[player][4],
-    )
-    print("All achievements:", players[player][5])
+
+    events_count = {name: nbr for name, nbr, *oth in event_switch.values()}
+    print("\nEvents Occured:")
+    for event, nbr in events_count.items():
+        print(event, ":", nbr)
+
+    all_achievements = {ach for player_data in players.values()
+                        for ach in player_data[3] if is_unique(players, ach)}
+    print("\nUnique achievement(s)", all_achievements)
+
+    players_investment = [[name, level / gold, gold / level]
+                          for name, level, gold, *oth in players.values()]
+    print("\nInvestment of players :")
+    for player in players_investment:
+        print(
+            f"{player[0]}, {player[1]:.3f} level per gold, \
+{player[2]:.2f} gold per level ")
 
     print("\nData Répartition:")
     print(
@@ -271,21 +262,6 @@ def players_event(r: int, seed: int) -> None:
         2: ["charlie", 0, 0, set()],
         3: ["luther", 0, 0, set()],
         4: ["jaina", 0, 0, set()],
-        5: [
-            "total",
-            0,
-            0,
-            0,
-            0,
-            {
-                "boss_slayer",
-                "player_killer",
-                "collector",
-                "level_60_!",
-                "true_dragon",
-                "speed_demon",
-            },
-        ],
     }
 
     event_switch = {

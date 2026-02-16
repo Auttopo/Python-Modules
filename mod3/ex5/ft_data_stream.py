@@ -1,24 +1,28 @@
+
+from typing import Generator
+
+
 def fibonacci(n: int) -> int:
-    """create n of number of the fibonacci suit"""
+    """ create n of number of the fibonacci suit """
 
     if n < 2:
         return n
     return fibonacci(n - 1) + fibonacci(n - 2)
 
 
-def fibo_generator() -> int:
-    """generate fibonacci numbers"""
+def fibo_generator() -> Generator[int, None, None]:
+    """ generate fibonacci numbers """
 
     i = 0
-    e = 1
+    e = 0
     for i in iter(int, 1):
         yield fibonacci(e)
         e += 1
 
 
 def fibo_event(r: int) -> None:
-    """create n number of fobonacci suit with a generator"""
-    #  for n in range(4):
+    """ create n number of fobonacci suit with a generator """
+
     print(end="Generated Fibonacci suit :")
     t = fibo_generator()
     for i in range(r):
@@ -27,21 +31,19 @@ def fibo_event(r: int) -> None:
 
 
 def is_prime(nbr: int) -> bool:
-    """return true if the number is prime"""
+    """ return true if the number is prime """
 
     i = 1
     e = 1
-#    if nbr == 1:
-#        return True
     for e in range(nbr):
         for i in range(nbr):
-            if nbr == (i * e):
+            if nbr == (i * e) or nbr == 1:
                 return False
     return True
 
 
-def prime_generator() -> int:
-    """generate primes numbers"""
+def prime_generator() -> Generator[int, None, None]:
+    """ generate primes numbers """
 
     i = 0
     e = 1
@@ -52,7 +54,7 @@ def prime_generator() -> int:
 
 
 def prime_event(r: int) -> None:
-    """create n first prime numbers"""
+    """ create n first prime numbers """
 
     print(end="Generated Prime suit :")
     t = prime_generator()
@@ -61,8 +63,8 @@ def prime_event(r: int) -> None:
     print("")
 
 
-def random_number(seed: int, range: int = 10) -> None:
-    """create a random number"""
+def random_number(seed: int, range: int = 10) -> Generator[int, None, None]:
+    """ create a random number """
 
     r = seed
     plage = 4294967296
@@ -74,7 +76,7 @@ def random_number(seed: int, range: int = 10) -> None:
 
 
 def players_event(r: int) -> None:
-    """prints randoms events and stats associed"""
+    """ prints randoms events and stats associed """
 
     random_n = random_number(88, 3)
 
@@ -116,6 +118,7 @@ def players_event(r: int) -> None:
 
 
 if __name__ == "__main__":
+    print("=== Game Data Stream Processor ===\n")
     players_event(1000)
     fibo_event(10)
     prime_event(10)

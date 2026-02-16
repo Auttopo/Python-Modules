@@ -88,10 +88,10 @@ def nester_stats(inv: dict) -> dict[str, dict[str, int]]:
     gold = nested_inv.get("abundant").get("gold")
     if len(nested_inv.get("scarce")) < 3:
         print("get more \"Rares\" items")
-    elif gold and gold < 1000:
-        print("get more \"Golds\"")
-    else:
+    elif gold and gold > 999:
         print("you are fine to go in dungeons")
+    else:
+        print("get more \"Golds\"")
 
 
 if __name__ == "__main__":
