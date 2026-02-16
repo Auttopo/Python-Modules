@@ -20,7 +20,7 @@ if __name__ == "__main__":
     av = 0
     if i > 0 and sum(scores) > 0:
         av = int(sum(scores) / i)
-    print("average score:", av)
+    print(f"average score: {av:.1f}")
     print("high score:", max(scores))
     print("low score:", min(scores))
-    print("scores range:", max(scores) - min(scores) + 1)
+    print("scores range:", max(scores) - min(scores))
