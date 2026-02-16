@@ -31,14 +31,13 @@ def is_prime(nbr: int) -> bool:
 
     i = 1
     e = 1
-    if nbr == 1:
-        return True
+#    if nbr == 1:
+#        return True
     for e in range(nbr):
         for i in range(nbr):
-            if nbr == i * e:
-                return True
-
-    return False
+            if nbr == (i * e):
+                return False
+    return True
 
 
 def prime_generator() -> int:

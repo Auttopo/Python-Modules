@@ -23,4 +23,4 @@ if __name__ == "__main__":
     print("average score:", av)
     print("high score:", max(scores))
     print("low score:", min(scores))
-    print("scores range:", max(scores) - min(scores))
+    print("scores range:", max(scores) - min(scores) + 1)

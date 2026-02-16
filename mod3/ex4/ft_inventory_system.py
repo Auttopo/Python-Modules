@@ -46,6 +46,7 @@ def stats(inv: dict) -> None:
     print("\nSTATS:")
     (big_name, big), *oth = inv.items()
     (less_name, less), *oth = inv.items()
+    total = 0
     for item, value in inv.items():
         if value > big:
             big = value
@@ -53,30 +54,39 @@ def stats(inv: dict) -> None:
         if value < less:
             less = value
             less_name = item
+        total += value
 
+    print("Inventory repartition:")
+    for item, value in inv.items():
+        print(f"{item} {value}, ({value / total * 100} %)")
+    print("\ntotal items:", total, end=", ")
+    print("composed by:", inv.values())
     print("most possess item : ", big_name, ". count: ", big, sep="")
     print("least possess item : ", less_name, ". count: ", less, sep="")
+    print("item collection:", inv.keys())
 
 
 def nester_stats(inv: dict) -> dict[str, dict[str, int]]:
     """ create a nested dictionary and display stats infos """
 
-    nested_inv = {"common": {}, "uncommon": {}, "rare": {}}
+    nested_inv = {"abundant": {}, "moderate": {}, "scarce": {}}
     for item in inv.items():
         name, value = item
         if value < 5:
-            nested_inv.get("rare").update({item})
+            nested_inv.get("scarce").update({item})
         elif value < 10:
-            nested_inv.get("uncommon").update({item})
+            nested_inv.get("moderate").update({item})
         else:
-            nested_inv.get("common").update({item})
-    print("Rares items:", nested_inv.get("rare"))
-    print("Uncommon items:", nested_inv.get("uncommon"))
-    print("Common items:", nested_inv.get("common"))
+            nested_inv.get("abundant").update({item})
+
+    print("\nNESTED STATS:")
+    print("Rares items:", nested_inv.get("scarce"))
+    print("Uncommon items:", nested_inv.get("moderate"))
+    print("Common items:", nested_inv.get("abundant"))
 
     print("\nSUGGESTION:")
-    gold = nested_inv.get("common").get("gold")
-    if len(nested_inv.get("rare")) < 3:
+    gold = nested_inv.get("abundant").get("gold")
+    if len(nested_inv.get("scarce")) < 3:
         print("get more \"Rares\" items")
     elif gold and gold < 1000:
         print("get more \"Golds\"")
