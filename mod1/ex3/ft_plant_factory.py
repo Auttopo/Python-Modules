@@ -31,17 +31,17 @@ class Plant:
         because auto applied when necessary """
         if self.time > 3:
             print(
-                    "this plent grow", int(self.time / 4),
-                    "cm from your last passage")
+                "this plent grow", int(self.time / 4),
+                "cm from your last passage")
             self.height += int(self.time / 4)
             self.time -= int(self.time % 4)
 
     def say(self) -> None:
         """ display all basics informations of the plant (name, height, age)"""
         print(
-                self.name, ": ",
-                self.height, "cm, ",
-                self.days, " days old", sep="")
+            self.name, ": ",
+            self.height, "cm, ",
+            self.days, " days old", sep="")
 
     def age(self, time: int) -> None:
         """ the time elapses according to the chosen value (in days)"""
@@ -79,7 +79,6 @@ def take_input(says: str) -> int:
 
 
 def plant_factory(data: list[tuple[str, int, int]]) -> list[Plant]:
-
     """ factory program to make large number of plants object
     using a while with the parameter"""
 
@@ -96,8 +95,8 @@ def plant_factory(data: list[tuple[str, int, int]]) -> list[Plant]:
 
 if __name__ == "__main__":
     plants_spec = [
-                ("rose", 15, 10), ("larkspur", 2, 2), ("tulip", 2, 4),
-                ("sunflower", 102, 153), ("abutilon", 9, 21)]
+        ("rose", 15, 10), ("larkspur", 2, 2), ("tulip", 2, 4),
+        ("sunflower", 102, 153), ("abutilon", 9, 21)]
     deposit = plant_factory(plants_spec)
 
     print("\nPlant deposit summary:")

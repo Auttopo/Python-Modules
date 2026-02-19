@@ -9,13 +9,16 @@ class DataProcessor(ABC):
     def __init__(self, data: Any) -> None:
         """ init with verification of the data parameter """
 
-        print(f"\nInitializing {self.__class__.__name__} ...")
-        self._data: Any = data
-        self._data_str: str = self.process(data)
-        if self._data_str is None:
-            print("error occured, data not captured, see previous logs")
-        else:
-            print(f'output : "{self._data_str}"')
+        try:
+            print(f"\nInitializing {self.__class__.__name__} ...")
+            self._data: Any = data
+            self._data_str: str = self.process(data)
+            if self._data_str is None:
+                print("error occured, data not captured, see previous logs")
+            else:
+                print(f'output : "{self._data_str}"')
+        except Exception as e:
+            print(e)
 
     @abstractmethod
     def process(self, data: Any) -> str:
@@ -33,7 +36,7 @@ class DataProcessor(ABC):
             out: str = str(result)
             return out
         except Exception as e:
-            print("Invalid data, no output :", e)
+            raise Exception(f"Invalid data, no output : {e}", )
 
 
 class NumericProcessor(DataProcessor):
@@ -48,8 +51,7 @@ class NumericProcessor(DataProcessor):
                 self.validate(elem)
             return self.format_output(data)
         except Exception as e:
-            print("Numeric array needed, data corrupted :", e)
-            return None
+            raise Exception(f"Numeric array needed, data corrupted : {e}")
 
     def validate(self, data: Any) -> bool:
         """ check if data is valide to the class expectations """
@@ -65,7 +67,7 @@ class NumericProcessor(DataProcessor):
     def format_output(self, result: str) -> str:
         """ format the data to a string like parent """
 
-        return super().format_output(data)
+        return super().format_output(result)
 
 
 class TextProcessor(DataProcessor):
@@ -77,13 +79,12 @@ class TextProcessor(DataProcessor):
         print(f'Processing data "{data}"')
         try:
             TextProcessor.validate(self, data)
-            words: List = data.split(" ")
+            words: List[Any] = data.split(" ")
             out: str = TextProcessor.format_output(self, data)
             print(f"Contain {ft_len(words)} words")
             return out
         except Exception as e:
-            print("error. String needed :", e)
-            return None
+            raise Exception(f"error. String needed : {e}")
 
     def validate(self, data: Any) -> bool:
         """ check if data is valide to the class expectations """
@@ -102,7 +103,7 @@ class TextProcessor(DataProcessor):
     def format_output(self, result: str) -> str:
         """ format the data to a string like parent """
 
-        return super().format_output(data)
+        return super().format_output(result)
 
 
 class LogProcessor(TextProcessor):
@@ -120,7 +121,7 @@ class LogProcessor(TextProcessor):
             self.validate(local)
             return self.format_output(data)
         except Exception as e:
-            print("error", e)
+            raise e
 
     def validate(self, data: Any) -> bool:
         """ check if data is valide to the class expectations """
@@ -153,9 +154,9 @@ def ft_len(data: Any) -> int:
 
 if __name__ == "__main__":
     print("=== CODE NEXUS - DATA PROCESSOR FOUNDATION ===")
-    data: List = [1, 5, 70, -2, "caca", 6]
-    np: NumericProcessor = NumericProcessor(data)
-    data: str = "voici un texte"
-    tp: TextProcessor = TextProcessor(data)
-    data: str = "ERROR: connection timed out"
-    lp: LogProcessor = LogProcessor(data)
+    data1: List[Any] = [1, 5, 70, -2, "caca", 6]
+    np: NumericProcessor = NumericProcessor(data1)
+    data2: str = "voici un texte"
+    tp: TextProcessor = TextProcessor(data2)
+    data3: str = "ERROR: connection timed out"
+    lp: LogProcessor = LogProcessor(data3)
