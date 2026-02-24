@@ -1,17 +1,15 @@
 
 from datetime import datetime
 from abc import ABC, abstractmethod
-from typing import Protocol, runtime_checkable, Generator
+from typing import Protocol, Generator
 from typing import Any, List, Dict, Union, Optional
 
 
-@runtime_checkable
-class ProcessingStage(Protocol):
+class PipelineException(Exception):
+    pass
 
-    ___crypt_key: List[int]
 
-    def process(self, data: Any) -> Any:
-        pass
+class Cryptable(Protocol):
 
     def get_crypted_key(cls) -> List[int]:
         pass
@@ -20,13 +18,28 @@ class ProcessingStage(Protocol):
         pass
 
 
-class StreamStage(ProcessingStage, ABC):
+class ProcessingStage(Protocol):
+
+    def process(self, data: Any) -> Any:
+        pass
+
+    def exec(cls, data: Any) -> Union[str, Any]:
+        pass
+
+    def enable(cls) -> None:
+        pass
+
+
+class CommonStage(ProcessingStage):
 
     _active_state: int = 0
 
     @classmethod
     def exec(cls, data: Any) -> Union[str, Any]:
-        return cls.process(cls, data)
+
+        # when used by a children without object
+        # the class name need to be gived to the method
+        return cls.process(cls, data)  # type: ignore
 
     @classmethod
     def disable(cls) -> None:
@@ -37,38 +50,52 @@ class StreamStage(ProcessingStage, ABC):
     def status(cls) -> int:
         return cls._active_state
 
-
-class InputStage(StreamStage):
-
-    active: int = 0
-
     def process(self, data: Any) -> Any:
+
         print(end="VERIFYING STAGE OTORISATION ---")
         if self.status() == 1:
-            print(" OK --- START STAGE 1 STREAM")
+            print(" OK --- START STAGE", data, "STREAM")
+            return True
         else:
-            print(" STAGE 1 KO --- STREAM STOPPED")
-            return None
-        return JSONAdapter.exec(data)
+            print(" STAGE", data, "KO --- STREAM STOPPED\n")
+            return False
+
+    def __init__(self) -> None:
+        pass
+
+
+class InputStage(CommonStage):
+
+    _active_state: int = 0
+
+    def process(self, data: Any) -> Dict[str, Any]:
+
+        # when used by a children without object
+        # the class name need to be gived to the method
+        if not super().process(self, 1):  # type: ignore
+            raise PipelineException(
+                "try to use unauthorized pipeline, level 1")
+        return need_a_dict(JSONAdapter.exec(data))
 
     @classmethod
     def enable(cls) -> None:
-        print(cls.__name__, "| stage 1 stream actived | Input validation and parsing")
+        print(cls.__name__,
+              "| stage 1 stream actived | Input validation and parsing")
         cls._active_state = 1
 
 
-class TransformStage(StreamStage):
+class TransformStage(CommonStage):
 
-    active: int = 0
+    _active_state: int = 0
 
-    def process(self, data: Any) -> Any:
-        print(end="VERIFYING STAGE OTORISATION ---")
-        if self.status() == 1:
-            print(" OK --- START STAGE 2 STREAM")
-        else:
-            print(" STAGE 2 KO --- STREAM STOPPED")
-            return None
-        return CSVAdapter.exec(data)
+    def process(self, data: Any) -> Dict[str, Any]:
+        # when used by a children without object
+        # the class name need to be gived to the method
+        if not super().process(self, 2):  # type: ignore
+            raise PipelineException(
+                "try to use unauthorized pipeline, level 2")
+        out = CSVAdapter.exec(data)
+        return need_a_dict(out)
 
     @classmethod
     def enable(cls) -> None:
@@ -77,24 +104,166 @@ class TransformStage(StreamStage):
         cls._active_state = 1
 
 
-class OutputStage(StreamStage):
+class OutputStage(CommonStage):
 
-    def process(self, data: Any) -> Any:
-        print(end="VERIFYING STAGE OTORISATION ---")
-        if self.status() == 1:
-            print(" OK --- START STAGE 3 STREAM")
-        else:
-            print(" STAGE 3 KO --- STREAM STOPPED")
-            return None
-        return StreamAdapter.exec(data)
+    _active_state: int = 0
+
+    def process(self, data: Any) -> str:
+
+        # when used by a children without object
+        # the class name need to be gived to the method
+        if not super().process(self, 3):  # type: ignore
+            raise PipelineException(
+                "try to use unauthorized pipeline, level 3")
+        out = StreamAdapter.exec(data)
+        return out
 
     @classmethod
     def enable(cls) -> None:
-        print(cls.__name__, "| stage 3 stream actived | Output formatting and delivery")
+        print(cls.__name__,
+              "| stage 3 stream actived | Output formatting and delivery")
         cls._active_state = 1
 
 
 class ProcessingPipeline(ABC):
+
+    stages: List[Any] = []
+
+    @classmethod
+    def add_stage(cls, name: str, data: Any) -> None:
+        ProcessingPipeline.stages.append([name, "STAGE SUCCESS", data])
+
+    @abstractmethod
+    def process(self, data: Any) -> Union[str, Any]:
+        pass
+
+    class NexusManager:
+
+        pipelines: List[str] = []
+        exec_time: datetime
+
+        @classmethod
+        def add_pipeline(cls, data: Any) -> None:
+            if data:
+                cls.pipelines.append(data)
+
+        @classmethod
+        def show_pipelines(cls) -> None:
+            print("\nALL PIPELINES STORED -----------------------------------")
+            i = 0
+            for item in cls.pipelines:
+                i += 1
+                print("PIPELINE:", i)
+                print(item)
+                print("")
+
+        @classmethod
+        def error_demonstration(cls) -> None:
+
+            ProcessingPipeline.NexusManager.setup(3)
+            print(end="\nERROR DEMONSTRATION: ")
+            print("----------------------------------------------------------")
+            data = {"bonsoir": 5, "coucou": 1, "level": 1, "unit": "C"}
+            try:
+                ducking_quack_quack_exec(InputStage(), data)
+            except Exception as e:
+                if not isinstance(e, PipelineException):
+                    print("error occured :", e)
+
+            print(end="ERROR DEMONSTRATION: ")
+            print("----------------------------------------------------------")
+            data = {"bonsoir": 5, "coucou": 1, "value": 1, "unit": "C"}
+            try:
+                ducking_quack_quack_exec(
+                    TransformStage(), [data, [917, 155, 310]])
+            except Exception as e:
+                if not isinstance(e, PipelineException):
+                    print("error occured :", e)
+            print(end="ERROR DEMONSTRATION: ")
+            print("----------------------------------------------------------")
+            ProcessingPipeline.NexusManager.setup(-5)
+            print(end="ERROR DEMONSTRATION: ")
+            print("----------------------------------------------------------")
+            ProcessingPipeline.NexusManager.setup(0)
+            data = {"bonsoir": 5, "coucou": 1, "level": 1, "unit": "C"}
+            try:
+                ducking_quack_quack_exec(InputStage(), data)
+            except Exception as e:
+                if not isinstance(e, PipelineException):
+                    print("error occured :", e)
+            print(end="ERROR DEMONSTRATION END: ")
+            print(end="------------------------------------------------------")
+            print("----------------------------------------------------------")
+
+        @classmethod
+        def monitoring(cls) -> None:
+            print("MONITORING DATA --- --- --- ")
+            time = str(datetime.now() - cls.exec_time)
+            times = time.split(":")
+            print("execution time:", times[2], "secondes")
+            print("total stream steps:", StreamAdapter.process_nb - 1)
+            print("total pipeline steps:", JSONAdapter.process_nb +
+                  CSVAdapter.process_nb + StreamAdapter.process_nb - 3)
+            print("\nstages logs list:")
+            for elem in ProcessingPipeline.stages:
+                print(elem)
+
+        @staticmethod
+        def setup(level: int) -> None:
+            print("initializing Nexus Manager...")
+            print('Pipeline capacity: "faster than Flash McQueen"\n')
+            print("Creating Data Processing Pipeline...\n")
+            ProcessingPipeline.NexusManager.exec_time = datetime.now()
+            try:
+                if isinstance(level, int) is False or (3 < level or level < 0):
+                    raise ValueError(
+                        f"Invalide type or range, {level} not in (0 - 3)\n")
+                if level == 0:
+                    InputStage.disable()
+                    TransformStage.disable()
+                    OutputStage.disable()
+                if level == 1:
+                    InputStage.enable()
+                    TransformStage.disable()
+                    OutputStage.disable()
+                elif level == 2:
+                    InputStage.enable()
+                    TransformStage.enable()
+                    OutputStage.disable()
+                elif level == 3:
+                    InputStage.enable()
+                    TransformStage.enable()
+                    OutputStage.enable()
+                print("")
+            except Exception as e:
+                print(e)
+
+        @staticmethod
+        def process_data(
+                first_data: Optional[Dict[str, Any]] = None) -> None | str:
+
+            if first_data is None:
+                first_data = {"bonsoir": 5, "coucou": 1,
+                              "value": 1, "unit": "C"}
+            try:
+                out1 = ducking_quack_quack_exec(InputStage(), first_data)
+                out2 = ducking_quack_quack_exec(
+                    TransformStage(), need_a_list(out1))
+                final_output: str = ducking_quack_quack_exec(
+                    OutputStage(), need_a_list(out2))
+                return final_output
+            except Exception as e:
+                if not isinstance(e, PipelineException):
+                    print("error occured :", e)
+            return None
+
+
+class CommonAdapter(ProcessingPipeline):
+
+    ___crypt_key: List[int] = []
+
+    current_id: str
+    process_nb: int
 
     @classmethod
     def get_crypted_key(cls) -> List[int]:
@@ -104,50 +273,43 @@ class ProcessingPipeline(ABC):
     def set_crypted_key(cls, key: List[int]) -> None:
         cls.___crypt_key = key
 
-    @abstractmethod
-    def process(self, data: Any) -> Union[str, Any]:
-        pass
-
     @classmethod
     def exec(cls, data: Any) -> Union[str, Any]:
-        return cls.process(cls, data)
+        # when used by a children without object
+        # the class name need to be gived to the method
+        return cls.process(cls, data)  # type: ignore
 
-    class NexusManager:
+    @classmethod
+    def set_id(cls, pipeline_id: str) -> None:
+        cls.current_id = pipeline_id
+        cls.process_nb += 1
 
-        @staticmethod
-        def setup(level: int) -> None:
-            print("initializing Nexus Manager...")
-            print('Pipeline capacity: "faster than Flash McQueen"\n')
-            print("Creating Data Processing Pipeline...\n")
+    @classmethod
+    def get_process_id(cls) -> str:
+        return str(cls.process_nb)
 
-            try:
-                if isinstance(level, int) is False or (3 < level or level < 0):
-                    raise ValueError(
-                        f"Invalide type or range, {level} not in (1 - 3)\n")
-                if 3 >= level >= 1:
-                    InputStage.enable()
-                if 3 >= level >= 2:
-                    TransformStage.enable()
-                if level == 3:
-                    OutputStage.enable()
-                print("")
-            except Exception as e:
-                print(e)
-
-        @staticmethod
-        def manage() -> None:
-            data = {"bonsoir": 5, "coucou": 1, "value": 1, "unit": "C"}
-            try:
-                out1 = ducking_quack_quack_exec(InputStage, data)
-                out2 = ducking_quack_quack_exec(TransformStage, out1)
-                ducking_quack_quack_exec(OutputStage, out2)
-            except Exception as e:
-                print("error occured :", e)
+    @staticmethod
+    def uncrypt(self: Cryptable, valid: str, data: List[int]) -> None:
+        try:
+            secret_data = Cryptor.uncrypting(self.get_crypted_key(), data)
+            if secret_data == valid:
+                print("Data OK, send from a valid operator")
+            else:
+                raise Exception(
+                    "Data KO, send from an indalid operator, Process Killed. ")
+        except Exception:
+            raise Exception(
+                "Data KO, send from an indalid operator, Process Killed. ")
 
 
-class JSONAdapter(ProcessingPipeline):
+class JSONAdapter(CommonAdapter):
 
     ___crypt_key: List[int] = []
+    current_id: str
+    process_nb: int = 1
+
+    def __init__(self, pipeline_id: str):
+        self.set_id("json_ad" + "_" + pipeline_id)
 
     def checker(self, data_batch: Dict[Any, Any]) -> bool:
         """Validate data batch format."""
@@ -172,104 +334,143 @@ class JSONAdapter(ProcessingPipeline):
         return True
 
     def process(self, data: Any) -> Union[str, Any]:
-        print(self.__name__, "process start ...")
+        JSONAdapter(self.get_process_id())
+
+        # self.__name__ exist and can´t Vybe false
+        print(self.__name__, "id:", self.current_id,  # type: ignore
+              "process start ...")
         try:
             print("input", data)
-            self.checker(JSONAdapter, data)
+            # without object
+            # methods need direct "self" or "class name" passing
+            self.checker(self, data)  # type: ignore
         except Exception as e:
             raise (e)
         data.update({"datetime": str(datetime.now())})
         out = ""
         for elem, nbr in data.items():
-            out += ", " + str(elem) + " " + str(nbr)
-        out = out[2:]
+            out += "," + str(elem) + " " + str(nbr)
+        out = out[1:]
         print("Transform: Enriched with metadata and validation; Success")
-        print("Informational Output. data streamed: Input saved and ready to use\n")
+        print("Informational Output. data streamed: \
+Input saved and ready to use")
 
-        return [out, cryptor.crypt_and_send_key(cryptor.seed_gen(),
-                str(self.__name__), CSVAdapter)]
+        self.add_stage(self.current_id, out)
+        # self.__name__ exist and can´t Vybe false
+        return [out, Cryptor.crypt_and_send_key(Cryptor.seed_gen(),
+                self.__name__, CSVAdapter)]  # type: ignore
 
 
-class CSVAdapter(ProcessingPipeline):
+class CSVAdapter(CommonAdapter):
 
     ___crypt_key: List[int] = []
+    current_id: str
+    process_nb: int = 1
+
+    def __init__(self, pipeline_id: str):
+        self.set_id("csv_ad" + "_" + pipeline_id)
+
+    @staticmethod
+    def extract(from_: List[Any], to_: List[Any], target: str) -> None:
+        for elem in from_:
+            if elem[0] == target:
+                to_.append(elem)
+                from_.remove(elem)
+
+    def sort(self, data: List[Any]) -> List[tuple[str, Any]]:
+        out1 = []
+        out2: List[tuple[str, Any]] = []
+        for elem in data:
+            datas = elem.split(" ")
+            out1.append((datas[0], datas[1]))
+        CSVAdapter.extract(out1, out2, "value")
+        CSVAdapter.extract(out1, out2, "unit")
+        CSVAdapter.extract(out1, out2, "datetime")
+        for elem1, elem2 in out1:
+            out2.append((elem1, elem2))
+        return out2
 
     def process(self, data: Any) -> Union[str, Any]:
+        CSVAdapter(self.get_process_id())
 
-        print(self.__name__, "process start ...")
+        # self.__name__ exist and can´t Vybe false
+        print(self.__name__,   # type: ignore
+              "id:", self.current_id, "process start ...")
         print("input", data[0], " paired with crypted data")
-        new_data = []
-        try:
-            secret_data = cryptor.uncrypting(self.get_crypted_key(), data[1])
-            if secret_data == "JSONAdapter":
-                print("Data OK, send from a valid operator")
-                new_data = data[0].split(",")
-            else:
-                raise Exception(
-                    "Data KO, send from an indalid operator, Process Killed. ")
-        except Exception as e:
-            raise (e)
+
+        self.uncrypt(self, "JSONAdapter", data[1])
+        new_data: List[str] = data[0].split(",")
+
+        # self atribute not reconize cos used with class
+        new_data = self.sort(self, new_data)  # type: ignore
         print("Transform: Uncrypt , parsed and structured data; Success")
         print(
-            "Informational Output. data streamed:", new_data, "\n"
+            "Informational Output. data streamed:", new_data
         )
-        return [new_data, cryptor.crypt_and_send_key(cryptor.seed_gen(),
-                str(self.__name__), StreamAdapter)]
+        self.add_stage(self.current_id, new_data)
+        # self.__name__ exist and can´t be false
+        return [new_data, Cryptor.crypt_and_send_key(Cryptor.seed_gen(),
+                str(self.__name__), StreamAdapter)]   # type: ignore
 
 
-class StreamAdapter(ProcessingPipeline):
+class StreamAdapter(CommonAdapter):
 
     ___crypt_key: List[int] = []
     _stream_status: int = 0
 
+    current_id: str
+    process_nb: int = 1
+
+    def __init__(self, pipeline_id: str):
+        self.set_id("stream_ad" + "_" + pipeline_id)
+
     @classmethod
-    def real_time_app(cls, data: List[Any]) -> List[Any]:
+    def real_time_app(cls, data: List[Any]) -> str:
         cls._stream_status = 1
         print("----------------------------REAL TIME SENSOR START STREAM\
--------------------------------------------------------------------------------------------------------------------")
-        gen = cryptor.random_number(cryptor.seed_gen(), 30)
-        log: List[Any] = []
-        log.append(data)
+------------------------------------------------------------------------\
+-------------------------------------------")
+        gen = Cryptor.random_number(Cryptor.seed_gen(), 30)
+        log = str(data[0]) + "\n"
         for i in range(next(gen)):
-            new_input: Dict = {"data": "temp",
-                               "value": next(gen), "unit": "C"}
-            out1 = ducking_quack_quack_exec(InputStage, new_input)
-            out2 = ducking_quack_quack_exec(TransformStage, out1)
-            log.append(ducking_quack_quack_exec(StreamAdapter, out2))
+            new_input: Dict[str, Any] = {"data": "temp",
+                                         "value": next(gen), "unit": "C"}
+            out1 = ducking_quack_quack_exec(InputStage(), new_input)
+            out2 = ducking_quack_quack_exec(
+                TransformStage(), need_a_list(out1))
+            log = log + ducking_quack_quack_exec(
+                OutputStage(), need_a_list(out2)) + "\n"
 
         print("----------------------------REAL TIME SENSOR END STREAM\
--------------------------------------------------------------------------------------------------------------------")
+----------------------------------------------------------------------\
+---------------------------------------------")
         return log
-
-    @classmethod
-    def stats(cls, data) -> None:
-        for elem in data:
-            print(elem[0])
 
     def process(self, data: Any) -> Union[str, Any]:
 
-        print(self.__name__, "process start ...")
+        StreamAdapter(self.get_process_id())
+        # self.__name__ exist and can´t be false
+        print(self.__name__, "id:", self.current_id,  # type: ignore
+              "process start ...")
         print("input", data[0], " paired with crypted data")
-        try:
-            secret_data = cryptor.uncrypting(self.get_crypted_key(), data[1])
-            if secret_data == "CSVAdapter":
-                print("Data OK, send from a valid operator")
-            else:
-                raise Exception(
-                    "Data KO, send from an indalid operator, Process Killed. ")
-        except Exception as e:
-            raise (e)
+
+        self.uncrypt(self, "CSVAdapter", data[1])
+
         if self._stream_status == 1:
-            return data
+            print("")
+            return str(data[0])
 
         new_data = self.real_time_app(data)
+        self._stream_status = 0
 
-        print("Transform: Uncrypt the previous data of the stream, and add it to the new generated complex stream")
+        print("Transform: Uncrypt the previous data of the stream\
+, and add it to the new generated complex stream")
         print(
-            "Informational Output. data streamed: Steam processed normaly, program end",
+            "Informational Output. data streamed and sorted\
+: Steam processed normaly, main stream end",
         )
-
-        self.stats(new_data)
+        print("FINALE OUTPUT CREATED .\n")
+        self.add_stage(self.current_id, new_data)
         return new_data
 
 
@@ -277,11 +478,20 @@ def ducking_quack_quack_exec(operator: ProcessingStage, data: Any) -> Any:
     return operator.exec(data)
 
 
-class cryptor:
+def need_a_dict(data: Any) -> dict[str, Any]:
+    return {"data": data[0], "crypted_name": data[1]}
+
+
+def need_a_list(data: dict[str, Any]) -> List[Any]:
+    return [data.get("data"), data.get("crypted_name")]
+
+
+class Cryptor:
 
     @staticmethod
-    def crypting(seed: str, data: str) -> List[List[int]]:
-        gen: Generator = cryptor.random_number(seed, 999999999)
+    def crypting(seed: int, data: str) -> List[List[int]]:
+        gen: Generator[int, None, None] = Cryptor.random_number(
+            seed, 999999999)
         out: List[int] = []
         key: List[int] = []
         for elem in data:
@@ -302,7 +512,8 @@ class cryptor:
         return out
 
     @staticmethod
-    def random_number(seed: int, range: int = 10) -> Generator[int, None, None]:
+    def random_number(
+            seed: int, range: int = 10) -> Generator[int, None, None]:
         """create a random number"""
 
         r = seed
@@ -314,8 +525,8 @@ class cryptor:
             yield r % range
 
     @staticmethod
-    def crypt_and_send_key(seed: str, data: str, dest: ProcessingStage) -> List[int]:
-        new_data = cryptor.crypting(seed, data)
+    def crypt_and_send_key(seed: int, data: str, dest: Cryptable) -> List[int]:
+        new_data = Cryptor.crypting(seed, data)
         dest.set_crypted_key(new_data[1])
         return new_data[0]
 
@@ -330,5 +541,13 @@ class cryptor:
 
 if __name__ == "__main__":
     print("=== CODE NEXUS - ENTERPRISE PIPELINE SYSTEM ===\n")
+    ProcessingPipeline.NexusManager.error_demonstration()
     ProcessingPipeline.NexusManager.setup(3)
-    ProcessingPipeline.NexusManager.manage()
+    ProcessingPipeline.NexusManager.add_pipeline(
+        ProcessingPipeline.NexusManager.process_data())
+    ProcessingPipeline.NexusManager.add_pipeline(
+        ProcessingPipeline.NexusManager.process_data(
+            {"day": "mardi", "logger": "abenabde",
+             "value": 8, "unit": "patate"}))
+    ProcessingPipeline.NexusManager.monitoring()
+    ProcessingPipeline.NexusManager.show_pipelines()
