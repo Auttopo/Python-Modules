@@ -8,12 +8,14 @@ if __name__ == "__main__":
             print("Storage unit created successfully...\n")
             print("Inscribing preservation data...")
             file_w.write(
-                        "[ENTRY 001] New quantum algorithm discovered\n\
+                "[ENTRY 001] New quantum algorithm discovered\n\
 [ENTRY 002] Efficiency increased by 347%\n\
 [ENTRY 003] Archived by Data Archivist trainee")
             print("[ENTRY 001] New quantum algorithm discovered")
             print("[ENTRY 002] Efficiency increased by 347%")
             print("[ENTRY 003] Archived by Data Archivist trainee")
+            file_w.close()
+
     except Exception as e:
         print(f"Error occured: {e}")
     finally:
