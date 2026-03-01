@@ -18,9 +18,9 @@ def test3() -> None:
     try:
         print("Testing Package Access:")
         print("alchemy.transmutation.lead_to_gold():",
-              alchemy.transmutation.lead_to_gold())  # type: ignore
+              alchemy.transmutation.lead_to_gold())
         print("alchemy.transmutation.philosophers_stone():",
-              alchemy.transmutation.philosophers_stone(), "\n")  # type: ignore
+              alchemy.transmutation.philosophers_stone(), "\n")
     except Exception as e:
         print("error occured:", e)
 
