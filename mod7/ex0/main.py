@@ -1,5 +1,5 @@
 
-from ex0.CreatureCard import CreatureCard  # type: ignore
+from ex0.CreatureCard import CreatureCard
 
 
 if __name__ == "__main__":

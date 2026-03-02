@@ -1,5 +1,5 @@
 
-from ex0.Card import Card  # type: ignore
+from ex0.Card import Card
 from typing import Any
 
 
@@ -26,6 +26,10 @@ class CreatureCard(Card):  # type: ignore
             print(self.name, "summoned successfully")
             game_state.update({"mana": mana - 10})
             self.state = True
+            allies = game_state["allies"]
+            allies.append(self)
+            game_state.update({"allies": allies})
+            return
         print(
             f"can't be play; need: {self.cost} \
 mana, current: {game_state.get('mana')}")
@@ -43,3 +47,9 @@ mana, current: {game_state.get('mana')}")
             return True
         print(f"{target.name} have now {target.health} pv")
         return False
+
+    def damage(self, damage: int) -> None:
+        self.health -= damage
+        if self.health < 1:
+            print(self.name, "died")
+            self.state = False
