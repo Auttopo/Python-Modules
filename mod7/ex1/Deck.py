@@ -8,35 +8,27 @@ import random
 
 def creature_set() -> list[CreatureCard]:
     return [
-        CreatureCard("bun", 1, "common", 2, 10),
-        CreatureCard("goat", 2, "common", 4, 10),
-        CreatureCard("wolf", 3, "common", 6, 15),
-        CreatureCard("mini golem", 3, "common", 2, 25),
 
         CreatureCard("bun", 1, "common", 2, 10),
         CreatureCard("goat", 2, "common", 4, 10),
         CreatureCard("wolf", 3, "common", 6, 15),
         CreatureCard("mini golem", 3, "common", 2, 25),
 
-        CreatureCard("unicorn", 5, "rare", 10, 20),
         CreatureCard("dragon slayer", 6, "rare", 8, 35),
         CreatureCard("gobelin horde", 4, "rare", 15, 1),
-
         CreatureCard("unicorn", 5, "rare", 10, 20),
-        CreatureCard("dragon slayer", 6, "rare", 8, 35),
-        CreatureCard("gobelin horde", 4, "rare", 15, 1),
 
-        CreatureCard("dragoon", 15, "legendary", 20, 100),
-        CreatureCard("mega golem", 10, "legendary", 5, 120)
+        CreatureCard("mega golem", 10, "legendary", 5, 120),
+        CreatureCard("dragoon", 15, "legendary", 20, 100)
     ]
 
 
 def spell_set() -> list[SpellCard]:
     return [
-        SpellCard("fire strom", 5, "common", "fire wave"),
-        SpellCard("super Flower Rain", 5, "common", "magic rain"),
         SpellCard("bread powa", 5, "common", "heal"),
-        SpellCard("water elfe infused", 5, "common", "get mana")
+        SpellCard("water elfe infused", 5, "common", "get mana"),
+        SpellCard("super Flower Rain", 5, "common", "magic rain"),
+        SpellCard("fire strom", 5, "common", "fire wave")
     ]
 
 
@@ -50,14 +42,15 @@ def artifact_set() -> list[ArtifactCard]:
 
 class Deck:
 
+    invisibility: int = 0
+
     def __init__(self) -> None:
         self.deck: list[Card] = []
-        self.max = 30
 
     def add_card(self, card: Card) -> None:
-        if len(self.deck) < self.max:
+        if self.invisibility == 0:
             print(card.name, "added to the deck")
-            self.deck.append(card)
+        self.deck.append(card)
 
     def remove_card(self, card_name: str) -> bool:
         i = 0
@@ -90,6 +83,9 @@ class Deck:
         print("[DECK]:")
         for elem in self.deck:
             print(elem.name)
+
+    def get_size(self) -> int:
+        return len(self.deck)
 
 
 def create_deck(creatures_n: int, spells_n: int, artifact_n: int) -> Deck:
