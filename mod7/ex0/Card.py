@@ -11,6 +11,7 @@ class Card(ABC):
         self.rarity: str = rarity
         self.state: bool = False
         self.description: str = ""
+        self.allies: str
 
     def set_description(self, descrition: str) -> None:
         self.description = descrition
@@ -27,3 +28,6 @@ class Card(ABC):
         if available_mana >= self.cost:
             return True
         return False
+
+    def set_allies(self, allies: str) -> None:
+        self.allies = allies

@@ -12,6 +12,11 @@ class ArtifactCard(Card):  # type: ignore
         super().__init__(name, cost, rarity)
         self.durability = durability
         self.effect = effect
+        self.allies = "effects"
+
+    @classmethod
+    def active_game(cls) -> None:
+        cls.game = 1
 
     def play(self, game_state: dict[str, Any]) -> dict[str, bool]:
         print("try to use:", self.name)
@@ -20,32 +25,12 @@ class ArtifactCard(Card):  # type: ignore
         if self.cost > mana:
             print("not enough mana")
             return {"state": False}
-        self.activate_ability()
-        effects = game_state.get("effects")
+        effects = game_state.get(self.allies)
         if effects is None:
             effects = []
         effects.append(self)
-        game_state.update({"effects": effects})
+        game_state.update({self.allies: effects})
         return {"state": True}
-
-    def enemy_play(self, game_state: dict[str, Any]) -> dict[str, bool]:
-        print("try to use:", self.name)
-
-        mana = game_state.get("mana")
-        if self.cost > mana:
-            print("not enough mana")
-            return {"state": False}
-        self.activate_ability()
-        effects = game_state.get("enemy_effects")
-        if effects is None:
-            effects = []
-        effects.append(self)
-        game_state.update({"enemy_effects": effects})
-        return {"state": True}
-
-    def activate_ability(self) -> dict[str, bool]:
-        print(self.name, "ability actived")
-        return {"State": True}
 
     @classmethod
     def effects_update(cls, game_state: dict[str, Any]) -> None:
@@ -59,8 +44,7 @@ class ArtifactCard(Card):  # type: ignore
                     print("gravels falls into the battle cry")
 
                 case "single_random":
-                    # rnd: int = random.randint(1, 3)
-                    rnd = 1
+                    rnd: int = random.randint(1, 3)
                     if rnd == 1:
                         if not len(game_state["allies"]):
                             print("no active allied to attack")
@@ -71,7 +55,8 @@ class ArtifactCard(Card):  # type: ignore
                             print(game_state["allies"][rnd].name,
                                   "designed, lose 15 pv")
                             game_state["allies"][rnd].damage(15)
-
+                    else:
+                        pass
                 case "direct":
                     print("the enemy take 5 damage")
                     pv: int = cast(int, game_state.get("enemy_pv")) - 5

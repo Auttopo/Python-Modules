@@ -7,21 +7,6 @@ from collections.abc import Callable
 import random
 
 
-class GameDict(TypedDict):
-    player: Player
-    enemy: Player
-    mana: int
-    hand: list[Card]
-    e_hand: list[Card]
-    enemies: list[CreatureCard]
-    allies: list[CreatureCard]
-    deck: Deck
-    e_deck: Deck
-    pv: int
-    enemy_pv: int
-    strategy: GameStrategy
-
-
 class FantasyCardFactory(CardFactory):  # type: ignore
     # Supports extensible card type registration
 
@@ -88,7 +73,7 @@ class FantasyCardFactory(CardFactory):  # type: ignore
         if name_or_power == "cursed sword":
             return artifact_set()[2]
         else:
-            return spell_set()[name_or_power]
+            return artifact_set()[name_or_power]
 
     def add_theme(self, name: str,
                   datas: list[

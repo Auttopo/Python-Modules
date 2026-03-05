@@ -1,6 +1,7 @@
 
 from ex0.Card import Card
 from typing import Any
+from ex2.Combatable import Combatable
 
 
 class CreatureCard(Card):  # type: ignore
@@ -16,36 +17,39 @@ class CreatureCard(Card):  # type: ignore
         super().__init__(name, cost, rarity)
         self.attack: int = attack
         self.health: int = health
+        self.charge = 1
+        self.allies = "allies"
 
-    def play(self, game_state: dict[str, Any]) -> None:
+    def play(self, game_state: dict[str, Any]) -> dict[str, bool]:
         print("trying play", self.name)
         mana: int | None = game_state.get("mana")
         if mana is None:
             mana = 0
         if self.is_playable(mana):
             print(self.name, "summoned successfully")
-            game_state.update({"mana": mana - 10})
+            game_state["mana"] -= self.cost
             self.state = True
-            allies = game_state["allies"]
-            allies.append(self)
-            game_state.update({"allies": allies})
-            return
+            game_state[self.allies].append(self)
+            return {"state": True}
         print(
             f"can't be play; need: {self.cost} \
 mana, current: {game_state.get('mana')}")
+        return {"state": False}
 
     def attack_target(self, target: "CreatureCard") -> bool | None:
         if not self.state:
             print("the card is not active")
             return None
-        print(f"{self.name} pv:{self.health} \
--attack- {target.name} pv:{target.health} ({self.attack} damage)")
+        print(f"{self.name} \
+-attack- {target.name} ({self.attack} damage)")
         target.health -= self.attack
-        if target.health < 1:
+        self.charge = 0
+        if target.health < 1 and not isinstance(target, Combatable):
             print(f"{target.name} died")
             target.state = False
             return True
-        print(f"{target.name} have now {target.health} pv")
+        if not isinstance(target, Combatable):
+            print(f"{target.name} have now {target.health} pv")
         return False
 
     def damage(self, damage: int) -> None:

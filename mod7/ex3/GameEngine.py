@@ -3,16 +3,18 @@ from __future__ import annotations
 from ex0.Card import Card
 from ex3.CardFactory import CardFactory
 from ex3.GameStrategy import GameStrate as GameStrategy
-from ex3.FantasyCardFactory import FantasyCardFactory, GameDict
-from ex3.AggressiveStrategy import AggressiveStrategy
+from ex3.FantasyCardFactory import FantasyCardFactory
 from ex0.CreatureCard import CreatureCard
 from ex1.SpellCard import SpellCard
 from ex1.ArtifactCard import ArtifactCard
 from ex1.Deck import Deck, creature_set, spell_set, artifact_set
-from typing import TypedDict, Any, cast
+from ex2.Combatable import Combatable
+from typing import TypedDict, Any, cast, Literal
 import subprocess
 import time
 import sys
+import random
+
 
 # FROM THE FUTURE
 
@@ -27,7 +29,24 @@ import sys
 # def prioritize_targets(self, available_targets: list) -> list:
 
 
-class Player(Card):  # type: ignore
+class GameDict(TypedDict):
+    player: Player
+    enemy: Player
+    mana: int
+    hand: list[Card]
+    e_hand: list[Card]
+    enemies: list[CreatureCard]
+    allies: list[CreatureCard]
+    deck: Deck
+    e_deck: Deck
+    pv: int
+    enemy_pv: int
+    strategy: GameStrategy
+    effects: list[ArtifactCard]
+    enemy_effects: list[ArtifactCard]
+
+
+class Player(Card, Combatable):  # type: ignore
 
     ability_limit = 0
     attack_limit = 0
@@ -45,36 +64,82 @@ class Player(Card):  # type: ignore
         cls.ability_limit = 0
         cls.attack_limit = 0
 
-    def __init__(self, name: str, cost: int, rarity: str, ability: str) -> None:
+    def __init__(
+            self, name: str, cost: int, rarity: str, ability: str
+    ) -> None:
         super().__init__(name, cost, rarity)
         self.ability = ability
         self.health = 0
         self._ia = 0
+        self.charge = 1
+
+    def get_combat_stats(self) -> None:
+        print("hero ability :", self.ability)
+        print("is an ia", self._ia)
+
+    def defend(self, incoming_damage: int) -> dict[Any, Any]:
+        true_damage = (incoming_damage - 10)
+        if true_damage > 0:
+            self.health -= true_damage
+        print(self.name, "taken", true_damage,
+              "deffend with 10 tanking damage shield")
+        return {"damages": true_damage}
 
     def set_ia(self) -> None:
         self._ia = 1
 
-    def play(self, game_state: dict[str, Any]) -> dict:
-        game_state = cast(GameDict, game_state)
+    def who_is_playing(self, player: str) -> None:
+        if player == "player":
+            self.player: Literal["player", "enemy"] = "player"
+            self.pv: Literal["pv", "enemy_pv"] = "pv"
+            self.hand: Literal["hand", "e_hand"] = "hand"
+            self.allies: Literal["allies", "enemies"] = "allies"
 
-        game_state["mana"] = 500
+            self.enemy: Literal["enemy", "player"] = "enemy"
+            self.e_hand: Literal["e_hand", "hand"] = "e_hand"
+            self.enemy_pv: Literal["enemy_pv", "pv"] = "enemy_pv"
+            self.enemies: Literal["enemies", "allies"] = "enemies"
+            self.effects: Literal["effects", "enemy_effects"] = "effects"
 
-        print(end="\nHAND: ")
-        i: int = 0
-        for elem in game_state["hand"]:
-            i += 1
-            print(end=f"[({i})")
-            print(end=f"{elem.name}] ")
-        print("")
+        if player == "enemy":
+            self.player = "enemy"
+            self.pv = "enemy_pv"
+            self.hand = "e_hand"
+            self.allies = "enemies"
+
+            self.enemy = "player"
+            self.enemy_pv = "pv"
+            self.enemies = "allies"
+
+            self.effects = "enemy_effects"
+
+    def play(self, game_state: dict[str, Any]) -> dict[str, str]:
+        # game: GameDict = cast(GameDict, game_state)
+
         if self._ia == 0:
+            print(end="\nHAND: ")
+            i: int = 0
+            for elem in game_state["hand"]:
+                i += 1
+                print(end=f"[{i}:")
+                if isinstance(elem, CreatureCard):
+                    print(end=f"{{{elem.attack}}}.")
+                elif isinstance(elem, SpellCard):
+                    print(end="$.")
+                elif isinstance(elem, ArtifactCard):
+                    print(end="@.")
+                print(end=f"{elem.name}")
+                if isinstance(elem, CreatureCard):
+                    print(end=f".({elem.health})")
+                print(end=f"[{elem.cost}]]  ")
+            print("\n")
             choice: str = str(input(
-                "For play, ENTER:-- 1: play a card | 2 play ability | 3 end turn --: "))
+                "For play, ENTER:-- 1: play a card | \
+                    2 play ability | 3 end turn --: "))
         else:
             choice = game_state["strategy"].enter_choice(game_state)
-
         if choice == "exit":
             sys.exit()
-
         try:
             ichoice: int = int(choice)
             if ichoice < 1 or ichoice > 3:
@@ -86,46 +151,57 @@ class Player(Card):  # type: ignore
             if self._ia == 0:
                 play_card: str = str(input("Enter the hand card number: "))
             else:
-                play_card: str = game_state["strategy"].card_choice(game_state)
-            hand_len = len(game_state["hand"])
+                play_card = game_state["strategy"].card_choice(game_state)
+            hand_len = len(game_state[self.hand])
             try:
                 result = int(play_card)
                 if result < 1 or result > hand_len or hand_len == 0:
                     raise
             except Exception:
                 return {"return": "wrong"}
-            game_state["hand"][result - 1].play(game_state)
-            game_state["hand"].pop(result - 1)
+            info = game_state[self.hand][result - 1].play(game_state)
+            if info["state"] == "True":
+                game_state[self.hand].pop(result - 1)
 
         if ichoice == 2:
 
             if self._ia == 0:
                 play_card = str(
                     input(
-                        "PLAY ABILITY : Enter allie minion number or 0 for chief: "
+                        "PLAY ABILITY : \
+Enter allie minion number or 0 for chief: "
                     ))
             else:
                 play_card = game_state["strategy"].ability_choice(
                     game_state)
 
-            sum_len = len(game_state["allies"])
+            sum_len = len(game_state[self.allies])
             try:
                 result = int(play_card)
                 if result < 0 or result > sum_len:
+                    raise
+                if result == 0 and game_state[self.player].charge == 0:
+                    print(game_state[self.player].name,
+                          ". unit Already Attacked (one per turn)")
+                    raise
+                elif result != 0 and \
+                        game_state[self.allies][result - 1].charge == 0:
+                    print(game_state[self.allies][result - 1].name,
+                          "this unit Already Attacked (one per turn)")
                     raise
             except Exception:
                 return {"return": "wrong"}
 
             if result == 0:
-                print(game_state["player"].name, "selected")
-                attacker = game_state["player"]
-                self.inject_attack(game_state, game_state["enemy_pv"])
-                if game_state["player"].ability != "warrior":
-                    attacker.attack_target(game_state["enemy"])
+                print(game_state[self.player].name, "selected")
+                attacker = game_state[self.player]
+                self.inject_attack(cast(GameDict, game_state), self.enemy_pv)
+                if game_state[self.player].ability != "warrior":
+                    attacker.attack_target(game_state[self.enemy])
                     return {"return": "again"}
             else:
-                print(game_state["allies"][result - 1].name, "selected")
-                attacker = game_state["allies"][result - 1]
+                print(game_state[self.allies][result - 1].name, "selected")
+                attacker = game_state[self.allies][result - 1]
 
             if self._ia == 0:
                 play_card = str(
@@ -135,7 +211,7 @@ class Player(Card):  # type: ignore
             else:
                 play_card = game_state["strategy"].target_choice(
                     game_state)
-            sum_len = len(game_state["enemies"])
+            sum_len = len(game_state[self.enemies])
             try:
                 result = int(play_card)
                 if result < 0 or result > sum_len:
@@ -144,11 +220,11 @@ class Player(Card):  # type: ignore
                 return {"return": "wrong"}
 
             if result == 0:
-                print(game_state["enemy"].name, "targeted")
-                attacker.attack_target(game_state["enemy"])
+                print(game_state[self.enemy].name, "targeted")
+                attacker.attack_target(game_state[self.enemy])
             else:
-                print(game_state["enemies"][result - 1].name, "targeted")
-                attacker.attack_target(game_state["enemies"][result - 1])
+                print(game_state[self.enemies][result - 1].name, "targeted")
+                attacker.attack_target(game_state[self.enemies][result - 1])
 
         if ichoice == 3:
             return {"return": "success"}
@@ -165,6 +241,7 @@ class Player(Card):  # type: ignore
     def attack(self, target: Card) -> dict[str, str]:
         game_state = self.game_state
         front_pv = self.front_pv
+        self.charge = 0
 
         match self.ability:
             case "warlock":
@@ -186,7 +263,7 @@ class Player(Card):  # type: ignore
             case "warrior":
                 print(target.name, "lose 5 pv")
                 if isinstance(target, Player):
-                    game_state[front_pv] -= 5
+                    game_state[front_pv] -= 5  # type: ignore
                 else:
                     target.health -= 5
                     if target.health < 1:
@@ -195,15 +272,63 @@ class Player(Card):  # type: ignore
 
         return {self.name: target.name}
 
+    def effects_update(self, game_state: GameDict) -> None:
+        artifacts = game_state[self.effects]
+        if not artifacts:
+            return
+        print(f"FROM [{self.name}] --- ")
+        for artifact in artifacts:
+            print(artifact.name, end="affect the game ! ")
+            match artifact.effect:
+                case "aoe":
+                    print("gravels falls into the battle cry")
+                    for elem in game_state[self.enemies]:
+                        print(elem.name, "take 5 damage")
+                        elem.damage(5)
+
+                case "single_random":
+                    rnd: int = random.randint(1, 3)
+                    if rnd == 1:
+                        if not len(game_state[self.allies]):
+                            print("no active allied to attack")
+                        else:
+                            print(end="allied ")
+                            rnd = random.randint(
+                                0, len(game_state[self.allies]) - 1)
+                            print(game_state[self.allies][rnd].name,
+                                  "designed, lose 15 pv")
+                            game_state[self.allies][rnd].damage(15)
+                    else:
+                        if not len(game_state[self.enemies]):
+                            print("no active enemy to attack")
+                        else:
+                            print(end="enemy ")
+                            rnd = random.randint(
+                                0, len(game_state[self.enemies]) - 1)
+                            print(game_state[self.enemies][rnd].name,
+                                  "designed, lose 15 pv")
+                            game_state[self.enemies][rnd].damage(15)
+                case "direct":
+                    print("the enemy take 5 damage")
+                    game_state[self.enemy_pv] -= 5
+            artifact.durability -= 1
+            if artifact.durability == 0:
+                game_state[self.effects].remove(artifact)
+            time.sleep(3)
+
 
 class GameEngine:
 
     def __init__(self, player: Player, enemie: Player) -> None:
+        from ex3.AggressiveStrategy import AggressiveStrategy
+
         self.game: GameDict = {"player": player, "mana": 0,
                                "enemy": enemie, "hand": [],
                                "e_hand": [], "deck": Deck, "e_deck": Deck,
                                "enemies": [], "allies": [],
-                               "pv": 50, "enemy_pv": 50, "strategy": AggressiveStrategy}
+                               "pv": 50, "enemy_pv": 50,
+                               "strategy": AggressiveStrategy,
+                               "effects": [], "enemy_effects": []}
         self.game["enemy"]._ia = 1
 
     def clear_field(self) -> None:
@@ -246,28 +371,39 @@ class GameEngine:
             ])
         e_deck = enemygen.create_themed_deck(total)
         self.game.update({"e_deck": e_deck.get("deck")})
+        for elem in self.game["e_deck"].deck:
+            if isinstance(elem, (CreatureCard, SpellCard)):
+                elem.set_allies("enemies")
+            if isinstance(elem, ArtifactCard):
+                elem.set_allies("enemy_effects")
 
-    def graphicprocess1(self, mana: int, e_mana: int) -> None:
-        for elem in range(0, self.game["e_deck"].get_size()):
+        self.game["player"].who_is_playing("player")
+        self.game["enemy"].who_is_playing("enemy")
+
+    def graphicprocess1(self, player: Card) -> None:
+        for i in range(0, self.game["e_deck"].get_size()):
             print(end="[")
         print(self.game["e_deck"].get_size())
-        print("                                                    MANA:",
-              e_mana)
+        print("")
         for i in range(0, 20):
             print(end=" ")
         print(
-            f"{self.game['enemy'].name} ( {self.game['enemy_pv']} )  ---   {self.game['enemy'].ability}")
+            f"{self.game['enemy'].name} ( {self.game['enemy_pv']} )  \
+---   {self.game['enemy'].ability}")
         print("")
         for i in range(0, 22):
             print(end=" ")
         for elem in self.game["e_hand"]:
             print(end="[] ")
         print(end="\n               ")
-        i: int = 0
+        i = 0
         for elem in self.game["enemies"]:
             i += 1
             print(end=f"'({elem.health}){elem.name}.{i}' ")
-        print("\n\n")
+        print("\n\n\n")
+        print("                                                    MANA:",
+              self.game["mana"])
+        print("\n")
         print(end="\n               ")
         i = 0
         for elem in self.game["allies"]:
@@ -282,20 +418,24 @@ class GameEngine:
         for i in range(0, 20):
             print(end=" ")
         print(
-            f"{self.game['player'].name} ( {self.game['pv']} )  ---   {self.game['player'].ability}")
-        print("                                                    MANA:",
-              mana)
+            f"{self.game['player'].name} ( {self.game['pv']} )  \
+---   {self.game['player'].ability}")
+        print("")
         print(self.game["deck"].get_size(), end="")
         for elem in range(0, self.game["deck"].get_size()):
             print(end="]")
         print("")
         for i in range(0, 65):
             print(end="-")
+        print("\n", player.name.capitalize(), "TURN --/")
         print("")
 
     def simulate_turn(self) -> dict[str, Any]:
+
+        self.game["mana"] += 1
+
         subprocess.run("clear")
-        self.graphicprocess1(self.game["mana"], self.game["mana"])
+        self.graphicprocess1(self.game["player"])
 
         deck = cast(Deck, self.game.get("deck"))
         deck.shuffle()
@@ -304,10 +444,15 @@ class GameEngine:
         result: dict[str, str] = {"return": "start"}
         while 1:
             subprocess.run("clear")
-            self.graphicprocess1(self.game["mana"], self.game["mana"])
+            self.graphicprocess1(self.game["player"])
             result = self.game["player"].play(cast(dict[Any, Any], self.game))
             if result["return"] == "success":
-                print("--- TURN END ! ---")
+                self.game["player"].effects_update(self.game)
+                self.clear_field()
+                for elem in self.game["allies"]:
+                    elem.charge = 1
+                self.game["player"].charge = 1
+                print("--- PLAYER TURN END ! ---")
                 time.sleep(3)
                 break
             if result["return"] == "wrong":
@@ -320,19 +465,28 @@ class GameEngine:
         deck = cast(Deck, self.game.get("e_deck"))
         deck.shuffle()
         self.game["e_hand"].append(deck.draw_card())
-
-        # self.game["enemy"].play(cast(dict[Any, Any], self.game))
-        # prioritize_targets(self, available_targets: list) -> list:
-        # execute_turn(self, hand: list, battlefield: list) -> dict:
+        while 1:
+            subprocess.run("clear")
+            self.graphicprocess1(self.game["enemy"])
+            result = self.game["enemy"].play(cast(dict[Any, Any], self.game))
+            if result["return"] == "success":
+                break
+            time.sleep(4)
+        self.game["enemy"].effects_update(self.game)
+        self.clear_field()
+        for elem in self.game["enemies"]:
+            elem.charge = 1
+        self.game["enemy"].charge = 1
+        print("--- ENEMY TURN END ! ---")
+        time.sleep(4)
 
         return {"TEEEEEEEEEEEEEEMP": "TEEEEEEEEEEEEEEEEEEEMP"}
 
-    def exec() -> None:
-        # while (1)
-        # data = self.simulate_turn()
-        #   if data.get("return") == "end"
-        #        return
-        pass
+    def exec(self) -> None:
+        while (1):
+            data = self.simulate_turn()
+            if data.get("return") == "end":
+                return
 
     def get_engine_status(self) -> dict[str, Any]:
         print(self.game)

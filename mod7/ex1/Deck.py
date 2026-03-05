@@ -26,7 +26,7 @@ def creature_set() -> list[CreatureCard]:
 def spell_set() -> list[SpellCard]:
     return [
         SpellCard("bread powa", 5, "common", "heal"),
-        SpellCard("water elfe infused", 5, "common", "get mana"),
+        SpellCard("water elfe infused", 1, "common", "get mana"),
         SpellCard("super Flower Rain", 5, "common", "magic rain"),
         SpellCard("fire strom", 5, "common", "fire wave")
     ]
