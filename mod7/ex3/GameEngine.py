@@ -16,19 +16,6 @@ import sys
 import random
 
 
-# FROM THE FUTURE
-
-# TournamentCard (Multiple Inheritance: Card + Combatable + Rankable)
-# def calculate_rating(self) -> int:
-# get_tournament_stats(self) -> dict:
-
-# FROM STRATEGY
-
-# def execute_turn(self, hand: list, battlefield: list) -> dict:
-# def get_strategy_name(self) -> str:
-# def prioritize_targets(self, available_targets: list) -> list:
-
-
 class GameDict(TypedDict):
     player: Player
     enemy: Player
@@ -114,7 +101,6 @@ class Player(Card, Combatable):  # type: ignore
             self.effects = "enemy_effects"
 
     def play(self, game_state: dict[str, Any]) -> dict[str, str]:
-        # game: GameDict = cast(GameDict, game_state)
 
         if self._ia == 0:
             print(end="\nHAND: ")
@@ -160,7 +146,7 @@ class Player(Card, Combatable):  # type: ignore
             except Exception:
                 return {"return": "wrong"}
             info = game_state[self.hand][result - 1].play(game_state)
-            if info["state"] == "True":
+            if info["state"]:
                 game_state[self.hand].pop(result - 1)
 
         if ichoice == 2:
@@ -238,7 +224,7 @@ Enter allie minion number or 0 for chief: "
     def attack_target(self, target: Card) -> dict[str, str]:
         return self.attack(target)
 
-    def attack(self, target: Card) -> dict[str, str]:
+    def attack(self, target: Combatable | CreatureCard) -> dict[str, str]:
         game_state = self.game_state
         front_pv = self.front_pv
         self.charge = 0
@@ -314,10 +300,14 @@ Enter allie minion number or 0 for chief: "
             artifact.durability -= 1
             if artifact.durability == 0:
                 game_state[self.effects].remove(artifact)
-            time.sleep(3)
+
+            if GameEngine.skip == 0:
+                time.sleep(3)
 
 
 class GameEngine:
+
+    skip = 0
 
     def __init__(self, player: Player, enemie: Player) -> None:
         from ex3.AggressiveStrategy import AggressiveStrategy
@@ -330,6 +320,11 @@ class GameEngine:
                                "strategy": AggressiveStrategy,
                                "effects": [], "enemy_effects": []}
         self.game["enemy"]._ia = 1
+        self.second_strategy: GameStrategy | None = None
+
+    def set_second_strategy(self, strategy: GameStrategy | None) -> None:
+        GameEngine.skip = 1
+        self.second_strategy = strategy
 
     def clear_field(self) -> None:
         for elem in self.game["allies"]:
@@ -350,6 +345,7 @@ class GameEngine:
 
         deck = factory.create_themed_deck(50)
         self.game.update({"deck": deck.get("deck")})
+        self.game.update({"strategy": strategy})
         self.strategy = strategy
 
         # ENEMY DECK CREATION ----
@@ -381,6 +377,7 @@ class GameEngine:
         self.game["enemy"].who_is_playing("enemy")
 
     def graphicprocess1(self, player: Card) -> None:
+        subprocess.run("clear")
         for i in range(0, self.game["e_deck"].get_size()):
             print(end="[")
         print(self.game["e_deck"].get_size())
@@ -430,11 +427,17 @@ class GameEngine:
         print("\n", player.name.capitalize(), "TURN --/")
         print("")
 
+    def win_check(self) -> Player | None:
+        if self.game["enemy_pv"] < 1:
+            return self.game["player"]
+        if self.game["pv"] < 1:
+            return self.game["enemy"]
+        return None
+
     def simulate_turn(self) -> dict[str, Any]:
 
         self.game["mana"] += 1
 
-        subprocess.run("clear")
         self.graphicprocess1(self.game["player"])
 
         deck = cast(Deck, self.game.get("deck"))
@@ -442,10 +445,14 @@ class GameEngine:
         self.game["hand"].append(deck.draw_card())
 
         result: dict[str, str] = {"return": "start"}
+        if self.second_strategy:
+            self.game["strategy"] = self.second_strategy
         while 1:
-            subprocess.run("clear")
             self.graphicprocess1(self.game["player"])
             result = self.game["player"].play(cast(dict[Any, Any], self.game))
+            if self.win_check():
+                self.graphicprocess1(self.game["player"])
+                return {"winner": self.win_check()}
             if result["return"] == "success":
                 self.game["player"].effects_update(self.game)
                 self.clear_field()
@@ -453,40 +460,50 @@ class GameEngine:
                     elem.charge = 1
                 self.game["player"].charge = 1
                 print("--- PLAYER TURN END ! ---")
-                time.sleep(3)
+                if GameEngine.skip == 0:
+                    time.sleep(3)
                 break
             if result["return"] == "wrong":
                 print(" ! --- ! INVALID VALUE OCCURED ! --- ! ")
-                time.sleep(2)
+                if GameEngine.skip == 0:
+                    time.sleep(2)
             else:
-                time.sleep(5)
+                if GameEngine.skip == 0:
+                    time.sleep(5)
             self.clear_field()
+
+        if self.second_strategy:
+            self.game["strategy"] = self.strategy
 
         deck = cast(Deck, self.game.get("e_deck"))
         deck.shuffle()
         self.game["e_hand"].append(deck.draw_card())
         while 1:
-            subprocess.run("clear")
             self.graphicprocess1(self.game["enemy"])
             result = self.game["enemy"].play(cast(dict[Any, Any], self.game))
+            if self.win_check():
+                self.graphicprocess1(self.game["enemy"])
+                return {"winner": self.win_check()}
             if result["return"] == "success":
                 break
-            time.sleep(4)
+            if GameEngine.skip == 0:
+                time.sleep(4)
         self.game["enemy"].effects_update(self.game)
         self.clear_field()
         for elem in self.game["enemies"]:
             elem.charge = 1
         self.game["enemy"].charge = 1
         print("--- ENEMY TURN END ! ---")
-        time.sleep(4)
+        if GameEngine.skip == 0:
+            time.sleep(4)
 
-        return {"TEEEEEEEEEEEEEEMP": "TEEEEEEEEEEEEEEEEEEEMP"}
+        return {"winner": None}
 
-    def exec(self) -> None:
+    def exec(self) -> Any:
         while (1):
             data = self.simulate_turn()
-            if data.get("return") == "end":
-                return
+            if data.get("winner"):
+                return data["winner"]
 
     def get_engine_status(self) -> dict[str, Any]:
         print(self.game)
