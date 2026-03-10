@@ -9,7 +9,7 @@ import random
 def creature_set() -> list[CreatureCard]:
     return [
 
-        CreatureCard("bun", 1, "common", 2, 10),
+        CreatureCard("bunny", 1, "common", 2, 10),
         CreatureCard("goat", 2, "common", 4, 10),
         CreatureCard("wolf", 3, "common", 6, 15),
         CreatureCard("mini golem", 3, "common", 2, 25),

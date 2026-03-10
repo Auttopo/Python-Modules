@@ -1,6 +1,6 @@
 
 from ex0.Card import Card
-from typing import Any, cast
+from typing import Any
 import random
 
 
@@ -13,6 +13,7 @@ class ArtifactCard(Card):  # type: ignore
         self.durability = durability
         self.effect = effect
         self.allies = "effects"
+        self.state = False
 
     @classmethod
     def active_game(cls) -> None:
@@ -30,38 +31,61 @@ class ArtifactCard(Card):  # type: ignore
             effects = []
         effects.append(self)
         game_state.update({self.allies: effects})
+        self.activate_ability()
         return {"state": True}
 
+    def activate_ability(self) -> dict[Any, Any]:
+        self.state = True
+        return {self.name: "activated"}
+
+    def is_active(self) -> bool:
+        if self.state is True:
+            print(self.name, " is active")
+            return True
+        return False
+
     @classmethod
-    def effects_update(cls, game_state: dict[str, Any]) -> None:
-        artifacts = game_state.get("effects")
+    def effects_update(cls, game_state: dict[Any, Any]) -> None:
+        artifacts = game_state["effects"]
         if not artifacts:
             return
-        for elem in artifacts:
-            print(elem.name, end="affect the game ! ")
-            match elem.effect:
-                case "aoe":
-                    print("gravels falls into the battle cry")
+        for artifact in artifacts:
+            if artifact.durability > 0:
+                print(artifact.name, end="affect the game ! ")
+                match artifact.effect:
+                    case "aoe":
+                        print("gravels falls into the battle cry")
+                        for elem in game_state["enemies"]:
+                            print(elem.name, "take 5 damage")
+                            elem.damage(5)
 
-                case "single_random":
-                    rnd: int = random.randint(1, 3)
-                    if rnd == 1:
-                        if not len(game_state["allies"]):
-                            print("no active allied to attack")
+                    case "single_random":
+                        rnd: int = random.randint(1, 3)
+                        if rnd == 1:
+                            if not len(game_state["allies"]):
+                                print("no active allied to attack")
+                            else:
+                                print(end="allied ")
+                                rnd = random.randint(
+                                    0, len(game_state["allies"]) - 1)
+                                print(game_state["allies"][rnd].name,
+                                      "designed, lose 15 pv")
+                                game_state["allies"][rnd].damage(15)
                         else:
-                            print(end="allied ")
-                            rnd = random.randint(
-                                0, len(game_state["allies"]) - 1)
-                            print(game_state["allies"][rnd].name,
-                                  "designed, lose 15 pv")
-                            game_state["allies"][rnd].damage(15)
-                    else:
-                        pass
-                case "direct":
-                    print("the enemy take 5 damage")
-                    pv: int = cast(int, game_state.get("enemy_pv")) - 5
-                    game_state.update({"enemy_pv": pv})
-            elem.durability -= 1
-            if elem.durability == 0:
-                artifacts.remove(elem)
-                game_state.update({"effects": artifacts})
+                            if not len(game_state["enemies"]):
+                                print("no active enemy to attack")
+                            else:
+                                print(end="enemy ")
+                                rnd = random.randint(
+                                    0, len(game_state["enemies"]) - 1)
+                                print(game_state["enemies"][rnd].name,
+                                      "designed, lose 15 pv")
+                                game_state["enemies"][rnd].damage(15)
+                    case "direct":
+                        print("the enemy take 5 damage")
+                        game_state["enemy_pv"] -= 5
+                    case other:
+                        raise Exception(
+                            f"error occured. unknown value : {other}")
+            artifact.durability -= 1
+        artifacts = [a for a in artifacts if a.durability >= 1]

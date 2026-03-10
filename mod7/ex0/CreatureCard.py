@@ -9,11 +9,11 @@ class CreatureCard(Card):  # type: ignore
     def __init__(
             self, name: str, cost: int, rarity: str, attack: int, health: int):
         if attack < 1:
-            print(name, "creation error, attack need to be positive or 0")
+            raise Exception(
+                name, "creation error, attack need to be positive or 0")
             return
         if health < 1:
-            print(name, "creation error health need to be positive")
-            return
+            raise Exception(name, "creation error health need to be positive")
         super().__init__(name, cost, rarity)
         self.attack: int = attack
         self.health: int = health
@@ -36,10 +36,10 @@ class CreatureCard(Card):  # type: ignore
 mana, current: {game_state.get('mana')}")
         return {"state": False}
 
-    def attack_target(self, target: "CreatureCard") -> bool | None:
+    def attack_target(self, target: "CreatureCard") -> dict[str, bool | None]:
         if not self.state:
             print("the card is not active")
-            return None
+            return {"return": None}
         print(f"{self.name} \
 -attack- {target.name} ({self.attack} damage)")
         target.health -= self.attack
@@ -47,10 +47,10 @@ mana, current: {game_state.get('mana')}")
         if target.health < 1 and not isinstance(target, Combatable):
             print(f"{target.name} died")
             target.state = False
-            return True
+            return {"return": True}
         if not isinstance(target, Combatable):
             print(f"{target.name} have now {target.health} pv")
-        return False
+        return {"return": False}
 
     def damage(self, damage: int) -> None:
         self.health -= damage

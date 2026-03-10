@@ -23,22 +23,6 @@ class AggressiveStrategy(GameStrate):  # type: ignore
     ) -> dict[str, str]:
 
         i: int = 0
-        if self.mana_push == 0:
-            for elem in hand:
-                i += 1
-                if isinstance(elem, SpellCard) and \
-                        elem.cost <= self.game_state["mana"]:
-                    if elem.effect_type == "get mana":
-                        self.mana_push = 1
-                        self.game_state["mana"] += 9
-                        inchoice: dict[str, str] = self.execute_turn(
-                            hand, battlefield)
-                        self.game_state["mana"] -= 9
-                        if inchoice["return"] == "1":
-                            self.card_choice_pos = i
-                            return {"return": "1"}
-
-        i = 0
         for elem in hand:
             i += 1
             if isinstance(elem, CreatureCard) and \
@@ -77,6 +61,22 @@ class AggressiveStrategy(GameStrate):  # type: ignore
                     self.card_choice_pos = i
                     return {"return": "1"}
 
+        i = 0
+        if self.mana_push == 0:
+            for elem in hand:
+                i += 1
+                if isinstance(elem, SpellCard) and \
+                        elem.cost <= self.game_state["mana"]:
+                    if elem.effect_type == "get mana":
+                        self.mana_push = 1
+                        self.game_state["mana"] += 9
+                        inchoice: dict[str, str] = self.execute_turn(
+                            hand, battlefield)
+                        self.game_state["mana"] -= 9
+                        if inchoice["return"] == "1":
+                            self.card_choice_pos = i
+                            return {"return": "1"}
+
         data = self.prioritize_targets(self.game_state["enemies"])
         if data[0] and data[0] == "2":
             return {"return": "2"}
@@ -97,7 +97,11 @@ class AggressiveStrategy(GameStrate):  # type: ignore
                 self.card_choice_pos = i
                 return ["2", elem]
 
-        if self.game_state["enemy"].charge == 1:
+        if self.game_state["enemy"].ability == "warlock" and \
+                self.game_state["enemy"].health < 26:
+            return ["no target"]
+        if self.game_state["enemy"].charge == 1 and \
+                self.game_state["enemy"].cost <= self.game_state["mana"]:
             self.card_choice_pos = 0
             return ["2", self.game_state["enemy"]]
         return ["no target"]

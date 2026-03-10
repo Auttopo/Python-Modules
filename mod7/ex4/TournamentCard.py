@@ -30,9 +30,11 @@ class TournamentCard (Player, Combatable, Rankable):  # type: ignore
 
     def get_rank_info(self) -> dict[Any, Any]:
         return {
+            "name": self.name,
+            "ability": self.ability,
             "wins": self.wins,
             "losses": self.losses,
-            "rank": self.calculate_rating
+            "rank": self.calculate_rating()
         }
 
     def play(self, game_state: dict[str, Any]) -> dict[str, str]:
@@ -51,11 +53,10 @@ class TournamentCard (Player, Combatable, Rankable):  # type: ignore
         return rank
 
     @classmethod
-    def get_classement(cls) -> list[TournamentCard]:
+    def get_classement(cls) -> list[str]:
         rank_list: list[TournamentCard] = []
 
-        rlen = range(0, len(cls.ranking))
-        for i in rlen:
+        for i in range(0, len(cls.ranking)):
             higher = cls.ranking[0]
             for elem in cls.ranking:
                 if higher.calculate_rating() < elem.calculate_rating():
@@ -64,12 +65,11 @@ class TournamentCard (Player, Combatable, Rankable):  # type: ignore
             cls.ranking.remove(higher)
         cls.ranking = rank_list
 
-#        out: str = "RANKING:\n"
-#        for elem in rank_list:
-#            out = out + elem.name + " rank: " + \
-#                str(elem.calculate_rating()) + "\n"
-
-        return cls.ranking
+        out: list[str] = []
+        for elem in rank_list:
+            out.append(elem.name + " rank: " +
+                       str(elem.calculate_rating()))
+        return out
 
     def get_tournament_stats(self) -> dict[str, list[TournamentCard]]:
         return {"ranking": TournamentCard.ranking}

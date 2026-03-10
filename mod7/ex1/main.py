@@ -3,17 +3,23 @@ from ex1.Deck import Deck, create_deck
 from ex1.SpellCard import SpellCard
 from ex1.ArtifactCard import ArtifactCard
 
-if __name__ == "__main__":
+
+def main() -> None:
     print("=== DataDeck Deck Builder ===\n")
 
+    pomdapi = CreatureCard("pomdapi", 2, "common", 2, 10)
+    goat = CreatureCard("mega goat", 2, "common", 2, 100)
+    bun = CreatureCard("bunny", 2, "common", 2, 10)
     game = {"pv": 50, "mana": 500, "player": "bob", "enemy_pv": 50}
     mydeck: Deck = create_deck(5, 3, 3)
     print(mydeck.get_deck_stats())
+    mydeck.add_card(pomdapi)
     card = mydeck.draw_card()
     print("card drawed:", card.name)
+    mydeck.remove_card("pomdapi")
+    mydeck.show()
 
-    goat = CreatureCard("goat", 2, "common", 2, 10)
-    bun = CreatureCard("bun", 2, "common", 2, 10)
+    mydeck.remove_card("")
 
     spell_book = [
         SpellCard("Fire strom", 5, "common", "fire wave"),
@@ -32,17 +38,26 @@ if __name__ == "__main__":
         spell.play(game)
 
     artifact_storage = [
-        ArtifactCard("heart of the mountain", 9, "rare", 3, "aoe"),
-        ArtifactCard("shard of dragon anger", 11, "rare", 4, "direct"),
-        ArtifactCard("cursed sword", 12, "legendary", 3, "single_random")
+        ArtifactCard("heart of the mountain", 9, "rare", 1, "aoe"),
+        ArtifactCard("shard of dragon anger", 11, "rare", 1, "direct"),
+        ArtifactCard("cursed sword", 12, "legendary", 2, "single_random")
     ]
     print(end="\nPOLYMORFIC ARTIFACTS ")
     print("-------------------------------------------\n")
     # TURN SIMULATION
     for artifact in artifact_storage:
         artifact.play(game)
-        print("")
+        artifact.is_active()
+    print("")
     i: int = 0
     while i < 5:
-        ArtifactCard.effects_update(game)
         i += 1
+        print("L", i)
+        ArtifactCard.effects_update(game)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        print("error occured", e)

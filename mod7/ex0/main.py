@@ -2,9 +2,9 @@
 from ex0.CreatureCard import CreatureCard
 
 
-if __name__ == "__main__":
+def main() -> None:
     print("=== DataDeck Card Foundation ===\n")
-    play_game = {"mana": 10, "name": "bidou"}
+    play_game = {"mana": 10, "name": "bidou", "allies": []}
 
     print("--- trying successfull play ------------------------------\n")
     obj = CreatureCard("wolf", 5, "common", 10, 50)
@@ -18,9 +18,19 @@ if __name__ == "__main__":
 
     print("\n--- trying unsuccessfull play ------------------------------\n")
 
-    horse = CreatureCard("horse", 1, "common", -10, 5)
-    print("")
+    try:
+        horse = CreatureCard("horse", 1, "common", -10, 5)
+        print(horse.name)
+    except Exception as e:
+        print("error :", e)
 
     golem = CreatureCard("golem", 10, "rare", 25, 80)
     golem.play(play_game)
     golem.attack_target(obj)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as e:
+        print("error :", e)

@@ -11,7 +11,7 @@ import time
 import traceback
 
 
-def programm_main() -> None:
+def main() -> None:
 
     try:
         factory = FantasyCardFactory(
@@ -44,7 +44,7 @@ def programm_main() -> None:
         print("-----------------------------\
 -------------------------------------")
 
-        player = Player("bob", 2, "commun", "warrior")
+        player = Player("bob", 2, "common", "warrior")
         enemie = Player("doofenshmirtz", 2, "rare", "warrior")
 
         game = GameEngine(player, enemie)
@@ -68,4 +68,4 @@ report what happened at abenabde@student.42lyon.fr")
 
 
 if __name__ == "__main__":
-    programm_main()
+    main()
