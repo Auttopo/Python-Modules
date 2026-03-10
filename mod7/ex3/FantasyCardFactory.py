@@ -111,7 +111,9 @@ class FantasyCardFactory(CardFactory):  # type: ignore
                         i += 1
                         count += 1
         if count != size:
-            print("Warning, you used a theme with differente size than needed")
+            print(
+                "Warning, the theme size is different than recommended"
+            )
             print(count, size)
 
         return {"deck": deck}

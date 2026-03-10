@@ -7,7 +7,6 @@ from ex1.Deck import creature_set, spell_set, artifact_set
 from ex3.GameEngine import GameEngine, Player
 from ex3.AggressiveStrategy import AggressiveStrategy
 from ex3 import error_print
-import time
 import traceback
 
 
@@ -15,24 +14,24 @@ def main() -> None:
 
     try:
         factory = FantasyCardFactory(
-            "basic theme",
+            "creature theme",
             [
                 (FantasyCardFactory.create_creature,
-                 12, CreatureCard, len(creature_set())),
-                (FantasyCardFactory.create_spell, 3,
+                 30, CreatureCard, len(creature_set())),
+                (FantasyCardFactory.create_spell, 0,
                  SpellCard, len(spell_set())),
                 (FantasyCardFactory.create_artifact,
-                 2, ArtifactCard, len(artifact_set()))
+                 0, ArtifactCard, len(artifact_set()))
             ])
         factory.add_theme(
             "classic theme",
             [
                 (FantasyCardFactory.create_creature,
                  15, CreatureCard, len(creature_set())),
-                (FantasyCardFactory.create_spell, 10, SpellCard,
+                (FantasyCardFactory.create_spell, 11, SpellCard,
                  len(spell_set())),
                 (FantasyCardFactory.create_artifact,
-                 10, ArtifactCard, len(artifact_set()))
+                 11, ArtifactCard, len(artifact_set()))
             ])
 
         factory.set_active_them("classic theme")
@@ -50,10 +49,12 @@ def main() -> None:
         game = GameEngine(player, enemie)
         game.configure_engine(factory, AggressiveStrategy)
 
+        print(game.get_engine_status())
         print(end="GAME CONFIGURATION FINISHED")
         print("--------------------------------\
 ----------------------------------")
-        time.sleep(2)
+
+        input("enter to continue:")
         game.exec()
     except Exception:
         print("\nbadly you fond a rare bug, \

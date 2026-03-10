@@ -332,6 +332,7 @@ class GameEngine:
                                "effects": [], "enemy_effects": []}
         self.game["enemy"]._ia = 1
         self.second_strategy: GameStrategy | None = None
+        self.state = False
 
     def set_second_strategy(
             self, strategy: GameStrategy | None,
@@ -356,10 +357,11 @@ class GameEngine:
     def configure_engine(
             self, factory: CardFactory, strategy: GameStrategy) -> None:
 
-        deck = factory.create_themed_deck(50)
+        deck = factory.create_themed_deck(35)
         self.game.update({"deck": deck.get("deck")})
         self.game.update({"strategy": strategy})
         self.strategy = strategy
+        print("")
 
         # ENEMY DECK CREATION ----
         total = deck["deck"].get_size()
@@ -388,6 +390,9 @@ class GameEngine:
 
         self.game["player"].who_is_playing("player")
         self.game["enemy"].who_is_playing("enemy")
+        self.state = True
+        obj = strategy(self.game)
+        obj.get_strategy_name()
 
     def graphicprocess1(self, player: Card) -> None:
         subprocess.run("clear")
@@ -463,6 +468,9 @@ class GameEngine:
 
     def simulate_turn(self) -> dict[str, Any]:
 
+        if not self.state:
+            print("The game need to be configured before launch")
+
         self.game["mana"] += 1
         mana_pull: int = self.game["mana"]
 
@@ -530,11 +538,17 @@ class GameEngine:
         return {"winner": None}
 
     def exec(self) -> Any:
+        if not self.state:
+            print("The game need to be configured before launch")
+            return
         while (1):
             data = self.simulate_turn()
             if data.get("winner"):
                 return data["winner"]
 
     def get_engine_status(self) -> dict[str, Any]:
-        print(self.game)
-        return {"status": self.game}
+        if self.state is True:
+            print("Game Ready To Launch")
+        else:
+            print("configure the game before launch")
+        return {"status": self.state}
